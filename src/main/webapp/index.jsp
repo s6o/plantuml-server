@@ -28,71 +28,118 @@
     <link rel="icon" href="${contextroot}/favicon.ico" type="image/x-icon"/> 
     <link rel="shortcut icon" href="${contextroot}/favicon.ico" type="image/x-icon"/>
     <link rel="stylesheet" href="${contextroot}/plantuml.css" />
-    <link rel="stylesheet" href="${contextroot}/webjars/codemirror/3.21/lib/codemirror.css" />
-    <script src="${contextroot}/webjars/codemirror/3.21/lib/codemirror.js"></script>
-    <!-- <script src="mode/plantuml.js"></script> -->
-    <script>
-        window.onload = function() {
-            var myCodeMirror = CodeMirror.fromTextArea(
-                document.getElementById("text"), 
-                {lineNumbers: true}
-            );
-        };
-    </script>
+    <link rel="stylesheet" href="${contextroot}/goldenlayout-base.css" />
+    <link rel="stylesheet" href="${contextroot}/goldenlayout-light-theme.css" />
+    <script type="text/javascript" src="${contextroot}/jquery.min.js"></script>
+    <script type="text/javascript" src="${contextroot}/goldenlayout.min.js"></script>
     <title>PlantUMLServer</title>
 </head>
 <body>
-<div id="header">
-    <%-- PAGE TITLE --%>
-    <h1>PlantUML Server</h1>
-    <c:if test="${cfg['SHOW_SOCIAL_BUTTONS'] eq 'on' }">
-        <%@ include file="resource/socialbuttons1.html" %>
-    </c:if>
-    <c:if test="${cfg['SHOW_GITHUB_RIBBON'] eq 'on' }">
-        <%@ include file="resource/githubribbon.html" %>
-    </c:if>
-    <p>Create your <a href="http://plantuml.com">PlantUML</a> diagrams directly in your browser !</p>
-</div>
-<div id="content">
-    <%-- CONTENT --%>
-    <form method="post" accept-charset="UTF-8"  action="${contextroot}/form">
-        <p>
-            <textarea id="text" name="text" cols="120" rows="10"><c:out value="${decoded}"/></textarea>
-            <input type="submit" />
-        </p>
-    </form>
-    <hr/>
-    <p>You can enter here a previously generated URL:</p>
+<div>
+    <button>
+        <img src="${contextroot}/horizontal-split.svg" />
+    </button>
+    <img src="${contextroot}/link.svg" alt="Link image" />
     <form method="post" action="${contextroot}/form">
-        <p>
-            <input name="url" type="text" size="150" value="${imgurl}" />
-            <br/>
-            <input type="submit"/>
-        </p>
+        <input name="url" type="text" value="${imgurl}" />
+        <button type="submit">
+            <img src="${contextroot}/done.svg" alt="Link image" />
+        </button>
     </form>
-    <c:if test="${!empty imgurl}">
-        <hr/>
-        <a href="${svgurl}">View as SVG</a>&nbsp;
-        <a href="${txturl}">View as ASCII Art</a>&nbsp;
-        <c:if test="${!empty mapurl}">
-            <a href="${mapurl}">View Map Data</a>
-        </c:if>
-        <c:if test="${cfg['SHOW_SOCIAL_BUTTONS'] == 'on' }">
-            <%@ include file="resource/socialbuttons2.jspf" %>
-        </c:if>
-        <p id="diagram">
-            <c:choose>
-            <c:when test="${!empty mapurl}">
-                <img src="${imgurl}" alt="PlantUML diagram" />
-            </c:when>
-            <c:otherwise>
-                <img src="${imgurl}" alt="PlantUML diagram" />
-            </c:otherwise>
-            </c:choose>
-        </p>
-    </c:if>
+    <br />
 </div>
-<%-- FOOTER --%>
-<%@ include file="footer.jspf" %> 
+<script type="text/javascript">
+    var config = {
+    settings:{
+        hasHeaders: true,
+        constrainDragToContainer: true,
+        reorderEnabled: true,
+        selectionEnabled: false,
+        popoutWholeStack: false,
+        blockedPopoutsThrowError: true,
+        closePopoutsOnUnload: true,
+        showPopoutIcon: false,
+        showMaximiseIcon: true,
+        showCloseIcon: false
+    },
+    content: [{
+        type: 'row',
+        content: [
+            {
+            type:'component',
+            componentName: 'Editor',
+            componentState: { text: 'Editor' }
+            },
+            {
+            type:'component',
+            componentName: 'Diagram',
+            componentState: { text: 'Diagram' }
+            }
+        ]
+    }]
+    };
+
+    var myLayout = new GoldenLayout(config); 
+
+    var toggleRowColumn = function() {
+        var oldElement = myLayout.root.contentItems[ 0 ],
+            newElement = myLayout.createContentItem({ 
+                type: oldElement.isRow ? 'column' : 'row',
+                content: [] 
+            }),
+            i;
+
+        //Prevent it from re-initialising any child items
+        newElement.isInitialised = true;
+
+        for( i = 0; i < oldElement.contentItems.length; i++ ) {
+            newElement.addChild( oldElement.contentItems[ i ] );
+        }
+
+        myLayout.root.replaceChild( oldElement, newElement );
+    };
+
+    myLayout.registerComponent( 'Editor', function( container, state ){
+        var html =`
+        <form method="post" accept-charset="UTF-8"  action="${contextroot}/form">
+        <p>
+        <textarea id="text" name="text" cols="120" rows="10"><c:out value="${decoded}"/></textarea>
+        <input type="submit" />
+        </p>
+        </form>
+        `;
+        container.getElement().html(html);
+    });
+
+    myLayout.registerComponent( 'Diagram', function( container, state ){
+        var html = `
+            <c:if test="${!empty(imgurl)}">
+                <hr/>
+                <a href="${svgurl}">View as SVG</a>&nbsp;
+                <a href="${txturl}">View as ASCII Art</a>&nbsp;
+                <c:if test="${!empty(mapurl)}">
+                    <a href="${mapurl}">View Map Data</a>
+                </c:if>
+                <c:if test="${cfg['SHOW_SOCIAL_BUTTONS'] == 'on' }">
+                    <%@ include file="resource/socialbuttons2.jspf" %>
+                </c:if>
+                <p id="diagram">
+                    <c:choose>
+                    <c:when test="${!empty(mapurl)}">
+                        <img src="${imgurl}" alt="PlantUML diagram" />
+                    </c:when>
+                    <c:otherwise>
+                        <img src="${imgurl}" alt="PlantUML diagram" />
+                    </c:otherwise>
+                    </c:choose>
+                </p>
+            </c:if>
+        `;
+
+        container.getElement().html(html);
+    });
+
+    myLayout.init();
+</script>
 </body>
 </html>
